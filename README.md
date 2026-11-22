@@ -7,7 +7,8 @@
 
 ## 立即开始
 
-**最简单的开玩方式：双击 `index.html`。**
+**最简单的开玩方式：双击 `index.html`。**  
+**在线试玩（GitHub Pages）：** https://mikasa91126.github.io/prismbound/
 
 游戏没有任何外部素材、构建步骤或运行时依赖；`index.html`、`css/`、`js/` 拷到任何地方都能直接运行。推荐使用最新版 Chrome / Edge（桌面端）。
 
