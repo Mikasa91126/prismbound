@@ -1,0 +1,107 @@
+:root{
+  --ink:#06070f;
+  --glow:#6ee7ff;
+  --warm:#ffc46b;
+  --panel:#0c1224;
+}
+*{box-sizing:border-box}
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--ink);
+  overflow:hidden;
+  color:#e8f0ff;
+  font-family:"Microsoft YaHei UI","PingFang SC","Noto Sans SC",sans-serif;
+}
+body{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 42%, #111a33 0%, #080b16 52%, #05060d 100%);
+  -webkit-user-select:none;
+  user-select:none;
+  touch-action:none;
+}
+#frame{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  max-width:100vw;
+  max-height:100vh;
+  filter:drop-shadow(0 26px 70px rgba(0,0,0,.65));
+}
+#frame::before{
+  content:"";
+  position:absolute;
+  inset:-14px;
+  border-radius:21px;
+  background:
+    linear-gradient(135deg, rgba(126,240,224,.20), rgba(255,196,107,.07) 32%, transparent 55%, rgba(180,140,255,.16));
+  z-index:-1;
+  opacity:.75;
+  filter:blur(1px);
+}
+canvas#game{
+  display:block;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  background:#070912;
+  border-radius:9px;
+  outline:none;
+  cursor:none;
+  max-width:100vw;
+  max-height:100vh;
+  aspect-ratio:16/9;
+}
+#boot{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  background:#070912;
+  border-radius:9px;
+  transition:opacity .45s ease;
+  pointer-events:none;
+}
+#boot.hide{opacity:0}
+.boot-mark{
+  width:54px;height:54px;
+  display:grid;place-items:center;
+  font-weight:800;
+  font-size:24px;
+  color:var(--ink);
+  background:linear-gradient(145deg,#8ff6e6,#f7d58a 55%,#b995ff);
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+  animation:breathe 1.8s ease-in-out infinite;
+}
+.boot-text{
+  font-size:12px;
+  letter-spacing:.28em;
+  color:#7586ad;
+}
+@keyframes breathe{
+  0%,100%{transform:scale(.9);filter:brightness(.85)}
+  50%{transform:scale(1.06);filter:brightness(1.1)}
+}
+#error{
+  position:absolute;
+  inset:12px;
+  padding:18px 20px;
+  border:1px solid #ff6b7d;
+  border-radius:8px;
+  background:rgba(20,6,14,.96);
+  color:#ffc9d1;
+  font:13px/1.6 Consolas,monospace;
+  white-space:pre-wrap;
+  overflow:auto;
+  z-index:9;
+}
+@media (max-width:700px){
+  #frame::before{inset:-7px;border-radius:16px}
+  canvas#game{border-radius:5px}
+}
