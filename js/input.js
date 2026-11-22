@@ -40,7 +40,7 @@
     padPrev: [],
     padDown: Object.create(null),
     aim: { x: 0, y: 0 },
-    pointer: { x: 0, y: 0, down: false, clicked: false },
+    pointer: { x: 0, y: 0, down: false, clicked: false, moved: false, active: false },
     initialized: false,
     usingPad: false,
     _pendingBuffers: Object.create(null),
@@ -89,9 +89,17 @@
           if (PB.Audio) PB.Audio.unlock();
           this.pointer.down = true;
           this.pointer.clicked = true;
+          this.pointer.active = true;
           const r = canvas.getBoundingClientRect();
           this.pointer.x = ((e.clientX - r.left) / r.width) * PB.C.UI_W;
           this.pointer.y = ((e.clientY - r.top) / r.height) * PB.C.UI_H;
+        });
+        canvas.addEventListener('pointermove', (e) => {
+          const r = canvas.getBoundingClientRect();
+          this.pointer.x = ((e.clientX - r.left) / r.width) * PB.C.UI_W;
+          this.pointer.y = ((e.clientY - r.top) / r.height) * PB.C.UI_H;
+          this.pointer.active = true;
+          this.pointer.moved = true;
         });
         window.addEventListener('pointerup', () => { this.pointer.down = false; });
         canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -123,12 +131,12 @@
         if (this.buffers[k] <= 0) delete this.buffers[k];
       }
       if (this.anyBuffer > 0) this.anyBuffer -= dt;
-      this.pointer.clicked = false;
     },
 
     endFrame() {
-      // 边缘缓冲由计时器控制；这里只清掉一次性点击
+      // 一次性点击与鼠标移动标记在帧末清理，供本帧的状态逻辑消费
       this.pointer.clicked = false;
+      this.pointer.moved = false;
     },
 
     isDown(action) {

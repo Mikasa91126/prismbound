@@ -55,6 +55,7 @@
     // ---------------------------------------------------------------- draw entry
     draw(game, ctx) {
       ctx.imageSmoothingEnabled = false;
+      this.hits = [];
       this.drawVignette(ctx);
       switch (game.state) {
         case 'title': this.drawTitleNew(game, ctx); this.drawFrame(ctx); return;
@@ -93,6 +94,20 @@
     },
 
     // ---------------------------------------------------------------- primitives
+    // 菜单点击区域：绘制时登记，供 Game 的鼠标/触屏处理命中
+    addHit(x, y, w, h, index, kind) {
+      (this.hits || (this.hits = [])).push({ x, y, w, h, index, kind });
+    },
+
+    hitTest(px, py) {
+      const hs = this.hits || [];
+      for (let i = hs.length - 1; i >= 0; i--) {
+        const r = hs[i];
+        if (px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h) return r;
+      }
+      return null;
+    },
+
     dim(ctx, a = 0.6, color = '#05070e') {
       ctx.save();
       ctx.globalAlpha = a;
@@ -426,6 +441,7 @@
         const lab = ITEM_LABELS[item] || [item, item];
         const y = my + 64 + i * rowH;
         const sel = i === game.ui.titleIndex;
+        this.addHit(mx + 12, y - 4, mw - 24, 30, i, 'title');
         if (sel) {
           const bg = ctx.createLinearGradient(mx + 12, y, mx + mw - 12, y);
           bg.addColorStop(0, 'rgba(126,240,224,.16)');
@@ -441,7 +457,7 @@
       });
       ctx.save();
       ctx.globalAlpha = 0.55 + U.animate(t, 0.9) * 0.35;
-      Font.cn(ctx, '↑↓ 选择', mx + 20, my + mh - 18, 9, COL.dim, { weight: 500 });
+      Font.cn(ctx, '↑↓ / 鼠标 选择', mx + 20, my + mh - 18, 9, COL.dim, { weight: 500 });
       this.keycap(ctx, 'ENTER', mx + mw - 82, my + mh - 30, { color: COL.goldBright, border: 'rgba(242,196,106,.45)', padX: 6 });
       ctx.restore();
 
@@ -1286,6 +1302,7 @@
         const lab = ITEM_LABELS[it];
         const yy = y + 82 + i * 39;
         const sel = i === game.ui.pauseIndex;
+        this.addHit(x + 20, yy - 2, w - 40, 32, i, 'pause');
         if (sel) {
           const grad = ctx.createLinearGradient(x + 20, yy, x + w - 20, yy);
           grad.addColorStop(0, 'rgba(126,240,224,.16)');
@@ -1298,7 +1315,7 @@
         Font.cn(ctx, lab[0], x + 48, yy + 8, 15, sel ? COL.cyan : COL.text, { weight: sel ? 700 : 500 });
         Font.pixel(ctx, lab[1], x + 48, yy + 19, { scale: 1, color: sel ? 'rgba(126,240,224,.6)' : COL.dim });
       });
-      Font.cn(ctx, 'Esc 返回  ·  Enter 确认', x + 28, y + h - 22, 10, COL.dim, { weight: 500 });
+      Font.cn(ctx, 'Esc 返回  ·  Enter/点击 确认', x + 28, y + h - 22, 10, COL.dim, { weight: 500 });
       Font.cn(ctx, 'F 回响 · L/V 子弹时间 · TAB 图鉴', x + w - 28, y + h - 23, 8, 'rgba(150,170,205,.4)', { align: 'right', weight: 500, font: Font.mono });
     },
 
@@ -1327,6 +1344,7 @@
       items.forEach((it, i) => {
         const yy = y + 108 + i * 48;
         const sel = i === game.ui.settingsIndex;
+        this.addHit(x + 20, yy - 4, w - 40, 38, i, 'settings');
         if (sel) {
           ctx.fillStyle = 'rgba(126,240,224,.1)';
           ctx.fillRect(x + 20, yy - 4, w - 40, 38);
@@ -1339,6 +1357,7 @@
         if (it === 'music' || it === 'sfx') {
           const val = it === 'music' ? st.music : st.sfx;
           const bx = x + 300, bw = 180;
+          this.addHit(bx, yy + 8, bw, 16, i, 'settingsbar');
           this.bar(ctx, bx, yy + 12, bw, 8, val, sel ? COL.cyan : COL.cyanDim);
           for (let i2 = 1; i2 < 5; i2++) { ctx.fillStyle = 'rgba(8,12,22,.5)'; ctx.fillRect(bx + (bw / 5) * i2, yy + 12, 1, 8); }
           Font.pixel(ctx, `${Math.round(val * 100)}%`, x + w - 28, yy + 8, { scale: 1, color: sel ? COL.text : COL.muted, align: 'right' });
@@ -1397,7 +1416,7 @@
       });
       Font.cn(ctx, '手柄：A 跳跃 / X 冲刺 / Y 技能 / B 回响 / LB·RB 切换形态与子弹时间', colX[0], y + 386, 9, 'rgba(126,240,224,.55)', { weight: 500 });
       Font.cn(ctx, '手柄：START 暂停 · 方向键 / 左摇杆移动 · 右摇杆瞄准', colX[0], y + 402, 9, 'rgba(150,170,205,.4)', { weight: 500 });
-      Font.cn(ctx, 'Esc / Enter 返回', x + w - 28, y + h - 20, 10, COL.dim, { align: 'right', weight: 500 });
+      Font.cn(ctx, 'Esc / Enter / 点击 返回', x + w - 28, y + h - 20, 10, COL.dim, { align: 'right', weight: 500 });
     },
 
     // ---------------------------------------------------------------- codex
@@ -1427,6 +1446,9 @@
       const done = PB.Chains.countDone();
       Font.pixel(ctx, `${String(done).padStart(2, '0')} / 16`, 922, 32, { scale: 2, color: COL.gold, align: 'right' });
       Font.cn(ctx, '已达成', 922, 52, 10, COL.muted, { align: 'right', weight: 500 });
+      this.panel(ctx, 832, 62, 90, 24, { fill: 'rgba(9,14,27,.9)', border: 'rgba(126,240,224,.35)', notch: 4 });
+      Font.cn(ctx, '关闭 ESC', 877, 78, 10, COL.cyan, { align: 'center', weight: 600 });
+      this.addHit(832, 62, 90, 24, 0, 'codexClose');
 
       const gridX = 36, gridY = 100, cw = 141, chh = 88, gapX = 12, gapY = 10;
       for (let i = 0; i < 16; i++) {
@@ -1435,6 +1457,7 @@
         const x = gridX + col * (cw + gapX);
         const y = gridY + row * (chh + gapY);
         const sel = i === game.ui.codexIndex;
+        this.addHit(x, y, cw, chh, i, 'codex');
         const complete = PB.Chains.isDone(def.id);
         const pct = PB.Chains.progressOf(def.id);
         this.panel(ctx, x, y, cw, chh, {
@@ -1716,6 +1739,8 @@
       };
       drawBtn('清除并开始', 'ERASE & BEGIN', x + w / 2 - 90, yes, COL.red);
       drawBtn('返回', 'BACK', x + w / 2 + 90, !yes, COL.cyan);
+      this.addHit(x + w / 2 - 90 - 80, y + 132, 160, 34, 0, 'confirm');
+      this.addHit(x + w / 2 + 90 - 80, y + 132, 160, 34, 1, 'confirm');
       ctx.restore();
     },
 
@@ -1731,6 +1756,7 @@
       PB.Levels.CHAPTERS.forEach((ch, i) => {
         const yy = y + 82 + i * 58;
         const sel = i === game.ui.chapterIndex;
+        this.addHit(x + 20, yy - 4, w - 40, 48, i, 'chapters');
         const locked = i >= unlocked;
         if (sel) {
           ctx.fillStyle = 'rgba(126,240,224,.1)';
@@ -1750,7 +1776,7 @@
         }
         ctx.globalAlpha = 1;
       });
-      Font.cn(ctx, '↑↓ 选择 · Enter 出发 · Esc 返回', x + w / 2, y + h - 20, 10, COL.dim, { align: 'center', weight: 500 });
+      Font.cn(ctx, '↑↓ / 点击 选择 · Enter 出发 · Esc 返回', x + w / 2, y + h - 20, 10, COL.dim, { align: 'center', weight: 500 });
     },
 
     // ---------------------------------------------------------------- ending

@@ -114,6 +114,10 @@
       zh: '空中按 Shift + ↓ 陨石砸地。\n震飞敌人，砸碎脚下的裂缝地板。',
       en: 'IN AIR, SHIFT + ↓ FOR A METEOR POUND.\nSHOCKWAVE FOES, SMASH CRACKED FLOORS.',
     },
+    cracked: {
+      zh: '裂缝岩层下透出棱光。\n在空中按 Shift + ↓，用陨石砸地砸穿它。',
+      en: 'PRISM LIGHT BLEEDS THROUGH THE CRACKED FLOOR.\nPOUND IT OPEN IN THE AIR WITH SHIFT + ↓.',
+    },
     moving: {
       zh: '移动平台不会等你。\n算好节奏，借力越过深渊。',
       en: 'THE PLATFORM WAITS FOR NO ONE.\nRIDE ITS RHYTHM ACROSS.',
@@ -323,6 +327,7 @@
     b.ent('checkpoint', 38, 22);
     b.ent('portal', 55, 22, 'ch1');
     b.ent('sign', 2, 22, 'pound');
+    b.ent('sign', 13, 22, 'cracked');
     b.ent('sign', 20, 22, 'moving');
     b.ent('sign', 42, 22, 'steam');
     b.ent('sign', 52, 22, 'goal');

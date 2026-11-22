@@ -137,6 +137,7 @@
       }
 
       PB.Gfx.render(this);
+      Input.endFrame();
     }
 
     audioIntensity() {
@@ -156,7 +157,7 @@
         case 'intro': this.updateIntro(dt); break;
         case 'chapterCard':
           this.cardT += dt;
-          if (this.cardT > 0.4 && (Input.consume('confirm') || Input.consume('jump') || Input.consume('pause'))) {
+          if (this.cardT > 0.4 && (Input.consume('confirm') || Input.consume('jump') || Input.consume('pause') || Input.pointer.clicked)) {
             this.beginPlay();
           } else if (this.cardT > 2.6) {
             this.beginPlay();
@@ -186,6 +187,19 @@
       return items;
     }
 
+    // 鼠标/触屏：命中测试与悬停
+    pickHit(kind) {
+      const p = Input.pointer;
+      if (!p.active || !PB.UI) return null;
+      const hit = PB.UI.hitTest(p.x, p.y);
+      return hit && hit.kind === kind ? hit : null;
+    }
+
+    hoverHit(kind) {
+      if (!Input.pointer.moved) return null;
+      return this.pickHit(kind);
+    }
+
     updateTitle(dt) {
       this.themeOverride = 'summit';
       PB.Audio.setDucked(false);
@@ -193,43 +207,67 @@
       this.camera.y = 0;
       const items = this.titleItems();
       if (this.ui.titleIndex >= items.length) this.ui.titleIndex = 0;
+      const hov = this.hoverHit('title');
+      if (hov && hov.index < items.length) this.ui.titleIndex = hov.index;
       let moved = false;
       if (Input.consume('up')) { this.ui.titleIndex = (this.ui.titleIndex - 1 + items.length) % items.length; moved = true; }
       if (Input.consume('down')) { this.ui.titleIndex = (this.ui.titleIndex + 1) % items.length; moved = true; }
       if (moved) PB.Audio.sfx('menuMove');
+      const pHit = Input.pointer.clicked ? this.pickHit('title') : null;
+      if (pHit && pHit.index < items.length) {
+        this.ui.titleIndex = pHit.index;
+        PB.Audio.sfx('menuConfirm');
+        this.activateTitle(items[pHit.index]);
+        return;
+      }
       if (Input.consume('confirm') || Input.consume('jump')) {
         PB.Audio.sfx('menuConfirm');
-        const item = items[this.ui.titleIndex];
-        if (item === 'continue') this.continueGame();
-        else if (item === 'new') {
-          if (PB.Save.hasProgress()) { this.ui.confirmMode = 'new'; this.ui.previousState = 'title'; this.setState('confirmNew'); }
-          else this.startNewJourney();
-        } else if (item === 'chapters') {
-          this.ui.chapterIndex = 0;
-          this.setState('chapters');
-        } else if (item === 'codex') this.openCodex('title');
-        else if (item === 'settings') this.openSettings('title');
-        else if (item === 'controls') this.openControls('title');
+        this.activateTitle(items[this.ui.titleIndex]);
       }
+    }
+
+    activateTitle(item) {
+      if (item === 'continue') this.continueGame();
+      else if (item === 'new') {
+        if (PB.Save.hasProgress()) { this.ui.confirmMode = 'new'; this.ui.previousState = 'title'; this.setState('confirmNew'); }
+        else this.startNewJourney();
+      } else if (item === 'chapters') {
+        this.ui.chapterIndex = 0;
+        this.setState('chapters');
+      } else if (item === 'codex') this.openCodex('title');
+      else if (item === 'settings') this.openSettings('title');
+      else if (item === 'controls') this.openControls('title');
     }
 
     updateConfirmNew(dt) {
       this.ui.confirmIndex = this.ui.confirmIndex == null ? 1 : this.ui.confirmIndex;
+      const hov = this.hoverHit('confirm');
+      if (hov) this.ui.confirmIndex = hov.index;
       if (Input.consume('up') || Input.consume('down') || Input.consume('left') || Input.consume('right')) {
         this.ui.confirmIndex = 1 - this.ui.confirmIndex;
         PB.Audio.sfx('menuMove');
       }
+      const pHit = Input.pointer.clicked ? this.pickHit('confirm') : null;
+      if (pHit) {
+        this.ui.confirmIndex = pHit.index;
+        this.confirmNewChoice();
+        return;
+      }
       if (Input.consume('confirm') || Input.consume('jump')) {
-        if (this.ui.confirmIndex === 0) {
-          PB.Audio.sfx('menuConfirm');
-          PB.Save.reset();
-          this.stats = PB.Save.data.stats;
-          this.startNewJourney();
-        } else {
-          PB.Audio.sfx('menuBack');
-          this.setState('title');
-        }
+        this.confirmNewChoice();
       } else if (Input.consume('pause') || Input.consume('back')) {
+        PB.Audio.sfx('menuBack');
+        this.setState('title');
+      }
+    }
+
+    confirmNewChoice() {
+      if (this.ui.confirmIndex === 0) {
+        PB.Audio.sfx('menuConfirm');
+        PB.Save.reset();
+        this.stats = PB.Save.data.stats;
+        this.startNewJourney();
+      } else {
         PB.Audio.sfx('menuBack');
         this.setState('title');
       }
@@ -238,10 +276,23 @@
     updateChapters(dt) {
       const count = Math.min(PB.Levels.CHAPTERS.length, PB.Save.data.chapter + 1);
       this.ui.chapterIndex = U.clamp(this.ui.chapterIndex, 0, count - 1);
+      const hov = this.hoverHit('chapters');
+      if (hov && hov.index < count) this.ui.chapterIndex = hov.index;
       let moved = false;
       if (Input.consume('up')) { this.ui.chapterIndex = (this.ui.chapterIndex - 1 + count) % count; moved = true; }
       if (Input.consume('down')) { this.ui.chapterIndex = (this.ui.chapterIndex + 1) % count; moved = true; }
       if (moved) PB.Audio.sfx('menuMove');
+      const pHit = Input.pointer.clicked ? this.pickHit('chapters') : null;
+      if (pHit) {
+        if (pHit.index < count) {
+          this.ui.chapterIndex = pHit.index;
+          PB.Audio.sfx('menuConfirm');
+          this.loadChapter(this.ui.chapterIndex, false);
+        } else {
+          PB.Audio.sfx('menuBack');
+        }
+        return;
+      }
       if (Input.consume('confirm') || Input.consume('jump')) {
         PB.Audio.sfx('menuConfirm');
         this.loadChapter(this.ui.chapterIndex, false);
@@ -266,7 +317,7 @@
 
     updateIntro(dt) {
       this.introT += dt;
-      if (Input.consume('confirm') || Input.consume('jump') || Input.consume('right')) {
+      if (Input.consume('confirm') || Input.consume('jump') || Input.consume('right') || Input.pointer.clicked) {
         PB.Audio.sfx('menuConfirm');
         this.introCard++;
         this.introT = 0;
@@ -392,6 +443,26 @@
         if (this.state !== 'play') break;
       }
       if (steps >= 5) this.acc = 0; // 防止追帧螺旋
+
+      // 站在裂缝地板上时给一次玩法提示（每章一次）
+      if (this.player && this.player.onGround && this.player.grav > 0 && this.world) {
+        const p = this.player;
+        const tx = Math.floor(p.centerX() / C.TILE);
+        const ty = Math.floor((p.feetY() + 2) / C.TILE);
+        if (this.world.tileAt(tx, ty) === 'c') {
+          this._crackT = (this._crackT || 0) + dt;
+          if (this._crackT > 0.6) {
+            this._crackT = 0;
+            if (!this._crackChapters) this._crackChapters = new Set();
+            if (!this._crackChapters.has(this.chapterIndex)) {
+              this._crackChapters.add(this.chapterIndex);
+              this.toast('裂缝岩层在震颤 · 空中 Shift+↓ 砸穿它', 'THE CRACKED FLOOR TREMBLES · POUND IT OPEN', 'info', 3.4);
+            }
+          }
+        } else {
+          this._crackT = 0;
+        }
+      }
     }
 
     step(dt) {
@@ -426,20 +497,32 @@
 
     updatePaused(dt) {
       if (Input.consume('pause') || Input.consume('back')) { this.resumeGame(); return; }
+      const hov = this.hoverHit('pause');
+      if (hov) this.ui.pauseIndex = hov.index;
       let moved = false;
       if (Input.consume('up')) { this.ui.pauseIndex = (this.ui.pauseIndex - 1 + PAUSE_ITEMS.length) % PAUSE_ITEMS.length; moved = true; }
       if (Input.consume('down')) { this.ui.pauseIndex = (this.ui.pauseIndex + 1) % PAUSE_ITEMS.length; moved = true; }
       if (moved) PB.Audio.sfx('menuMove');
+      const pHit = Input.pointer.clicked ? this.pickHit('pause') : null;
+      if (pHit) {
+        this.ui.pauseIndex = pHit.index;
+        PB.Audio.sfx('menuConfirm');
+        this.activatePause(PAUSE_ITEMS[pHit.index]);
+        return;
+      }
       if (Input.consume('confirm') || Input.consume('jump')) {
         PB.Audio.sfx('menuConfirm');
-        const item = PAUSE_ITEMS[this.ui.pauseIndex];
-        if (item === 'resume') this.resumeGame();
-        else if (item === 'codex') this.openCodex('paused');
-        else if (item === 'controls') this.openControls('paused');
-        else if (item === 'settings') this.openSettings('paused');
-        else if (item === 'restart') this.restartCheckpoint();
-        else if (item === 'title') this.quitToTitle();
+        this.activatePause(PAUSE_ITEMS[this.ui.pauseIndex]);
       }
+    }
+
+    activatePause(item) {
+      if (item === 'resume') this.resumeGame();
+      else if (item === 'codex') this.openCodex('paused');
+      else if (item === 'controls') this.openControls('paused');
+      else if (item === 'settings') this.openSettings('paused');
+      else if (item === 'restart') this.restartCheckpoint();
+      else if (item === 'title') this.quitToTitle();
     }
 
     resumeGame() {
@@ -473,6 +556,17 @@
 
     updateCodex(dt) {
       if (Input.consume('codex') || Input.consume('pause') || Input.consume('back')) { this.closeCodex(); return; }
+      const hov = this.hoverHit('codex');
+      if (hov) this.ui.codexIndex = hov.index;
+      if (Input.pointer.clicked) {
+        if (this.pickHit('codexClose')) { this.closeCodex(); return; }
+        const card = this.pickHit('codex');
+        if (card) {
+          this.ui.codexIndex = card.index;
+          PB.Audio.sfx('menuMove');
+          return;
+        }
+      }
       let moved = false;
       if (Input.consume('left')) { this.ui.codexIndex = (this.ui.codexIndex + 15) % 16; moved = true; }
       if (Input.consume('right')) { this.ui.codexIndex = (this.ui.codexIndex + 1) % 16; moved = true; }
@@ -499,6 +593,8 @@
     updateSettings(dt) {
       const st = PB.Save.data.settings;
       if (Input.consume('pause') || Input.consume('back')) { this.closeSettings(); return; }
+      const hov = this.hoverHit('settings');
+      if (hov) this.ui.settingsIndex = hov.index;
       let moved = false;
       if (Input.consume('up')) { this.ui.settingsIndex = (this.ui.settingsIndex - 1 + SETTINGS_ITEMS.length) % SETTINGS_ITEMS.length; moved = true; }
       if (Input.consume('down')) { this.ui.settingsIndex = (this.ui.settingsIndex + 1) % SETTINGS_ITEMS.length; moved = true; }
@@ -513,6 +609,29 @@
         PB.Audio.sfx('menuMove');
       }
       if (moved) PB.Audio.sfx('menuMove');
+      if (Input.pointer.clicked) {
+        const bar = this.pickHit('settingsbar');
+        if (bar) {
+          const val = U.clamp((Input.pointer.x - bar.x) / bar.w, 0, 1);
+          const it = SETTINGS_ITEMS[bar.index];
+          if (it === 'music') { st.music = val; PB.Audio.setVolumes(st.music, null); }
+          else if (it === 'sfx') { st.sfx = val; PB.Audio.setVolumes(null, st.sfx); }
+          this.ui.settingsIndex = bar.index;
+          PB.Save.save();
+          PB.Audio.sfx('menuMove');
+          return;
+        }
+        const row = this.pickHit('settings');
+        if (row) {
+          this.ui.settingsIndex = row.index;
+          const it = SETTINGS_ITEMS[row.index];
+          if (it === 'shake') { st.shake = !st.shake; PB.Audio.sfx('menuConfirm'); PB.Save.save(); }
+          else if (it === 'flashes') { st.flashes = !st.flashes; PB.Audio.sfx('menuConfirm'); PB.Save.save(); }
+          else if (it === 'back') this.closeSettings();
+          else PB.Audio.sfx('menuConfirm');
+          return;
+        }
+      }
       if (Input.consume('confirm') || Input.consume('jump')) {
         if (item === 'shake') { st.shake = !st.shake; PB.Audio.sfx('menuConfirm'); PB.Save.save(); }
         else if (item === 'flashes') { st.flashes = !st.flashes; PB.Audio.sfx('menuConfirm'); PB.Save.save(); }
@@ -536,7 +655,7 @@
     }
 
     updateControls(dt) {
-      if (Input.consume('pause') || Input.consume('back') || Input.consume('confirm') || Input.consume('jump')) {
+      if (Input.consume('pause') || Input.consume('back') || Input.consume('confirm') || Input.consume('jump') || Input.pointer.clicked) {
         PB.Audio.sfx('menuBack');
         if (this.ui.controlsReturn === 'paused') this.setState('paused');
         else if (this.ui.controlsReturn === 'play') { this.setState('play'); PB.Audio.setDucked(false); }
@@ -587,7 +706,7 @@
       const d = this.ui.shrineData;
       if (!d) { this.setState('play'); return; }
       d.t += dt;
-      if (d.t > 0.55 && (Input.consume('confirm') || Input.consume('jump') || Input.consume('skill') || Input.consume('pause'))) {
+      if (d.t > 0.55 && (Input.consume('confirm') || Input.consume('jump') || Input.consume('skill') || Input.consume('pause') || Input.pointer.clicked)) {
         this.setState('play');
         PB.Audio.setDucked(false);
         this.player.invuln = 1;
@@ -712,7 +831,7 @@
     updateDead(dt) {
       if (this.player) this.player.deadT += dt;
       this.deathT += dt;
-      if (this.deathT > 0.5 && (Input.consume('confirm') || Input.consume('jump'))) this.respawn();
+      if (this.deathT > 0.5 && (Input.consume('confirm') || Input.consume('jump') || Input.pointer.clicked)) this.respawn();
       else if (this.deathT > 2.1) this.respawn();
     }
 
@@ -783,7 +902,7 @@
 
     updateChapterClear(dt) {
       this.cardT += dt;
-      if (this.cardT > 0.7 && (Input.consume('confirm') || Input.consume('jump'))) {
+      if (this.cardT > 0.7 && (Input.consume('confirm') || Input.consume('jump') || Input.pointer.clicked)) {
         const next = this.chapterIndex + 1;
         if (next < PB.Levels.CHAPTERS.length) this.loadChapter(next, false);
         else this.quitToTitle();
@@ -849,7 +968,7 @@
 
     updateEnding(dt) {
       this.endingT += dt;
-      if (this.endingT > 2 && (Input.consume('confirm') || Input.consume('jump') || Input.consume('pause'))) {
+      if (this.endingT > 2 && (Input.consume('confirm') || Input.consume('jump') || Input.consume('pause') || Input.pointer.clicked)) {
         this.quitToTitle();
       }
     }

@@ -17,7 +17,7 @@
     UI_W: 960,
     UI_H: 540,
     STEP: 1 / 60,
-    VERSION: '1.0.4',
+    VERSION: '1.0.5',
     TITLE: '棱镜奇旅',
     TITLE_EN: 'PRISMBOUND',
 

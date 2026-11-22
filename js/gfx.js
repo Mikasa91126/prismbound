@@ -1373,15 +1373,23 @@
         }
       }
       if (cracked) {
-        ctx.fillStyle = 'rgba(8,5,10,.8)';
-        ctx.fillRect(x + 4, y + 4, 1, 5);
-        ctx.fillRect(x + 5, y + 9, 3, 1);
-        ctx.fillRect(x + 10, y + 6, 1, 5);
-        ctx.fillRect(x + 8, y + 11, 1, 3);
+        // 更深的裂缝
+        ctx.fillStyle = 'rgba(8,5,10,.9)';
+        ctx.fillRect(x + 3, y + 3, 1, 8);
+        ctx.fillRect(x + 4, y + 10, 4, 1);
+        ctx.fillRect(x + 9, y + 4, 1, 8);
+        ctx.fillRect(x + 7, y + 11, 1, 3);
+        ctx.fillRect(x + 11, y + 8, 1, 3);
+        // 缝隙里透出的脉动微光：暗示岩层下方有空间
+        const pulse = 0.4 + Math.sin(this.time * 2.8 + tx * 0.9) * 0.25;
+        ctx.globalAlpha = Math.max(0.15, pulse);
         ctx.fillStyle = theme.accent;
-        ctx.globalAlpha = 0.5;
-        ctx.fillRect(x + 4, y + 8, 1, 1);
-        ctx.fillRect(x + 10, y + 9, 1, 1);
+        ctx.fillRect(x + 4, y + 6, 1, 1);
+        ctx.fillRect(x + 9, y + 7, 1, 1);
+        ctx.fillRect(x + 7, y + 12, 1, 1);
+        ctx.globalAlpha *= 0.5;
+        ctx.fillRect(x + 2, y - 1, 1, 1);
+        ctx.fillRect(x + 12, y - 2, 1, 1);
         ctx.globalAlpha = 1;
       }
     }
